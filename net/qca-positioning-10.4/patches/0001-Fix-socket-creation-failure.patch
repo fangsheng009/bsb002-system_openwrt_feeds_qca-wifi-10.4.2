@@ -1,0 +1,13 @@
+diff --git a/wpc/wpc_diface.c b/wpc/wpc_diface.c
+index 35bdc75..9e8bb8b 100644
+--- a/wpc/wpc_diface.c
++++ b/wpc/wpc_diface.c
+@@ -25,7 +25,7 @@ int wpc_create_nl_sock()
+     int return_status;
+     struct sockaddr_nl src_addr;
+ 
+-    wpc_driver_sock = socket(PF_NETLINK, SOCK_RAW, NETLINK_WIFIPOS);
++    wpc_driver_sock = socket(PF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
+     if (wpc_driver_sock < 0) {
+         printf("socket errno=%d\n", wpc_driver_sock);
+         return wpc_driver_sock;
