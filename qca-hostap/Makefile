@@ -1,7 +1,8 @@
 
 include $(TOPDIR)/rules.mk
 
-PKG_NAME:=qca-hostap
+PKG:=qca-hostap
+PKG_NAME:=$(PKG)-10.4
 
 # This value is custom to this package
 # The first version will be used as a default and the other selectable
