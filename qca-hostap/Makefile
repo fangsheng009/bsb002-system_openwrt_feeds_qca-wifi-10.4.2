@@ -32,44 +32,44 @@ define Package/qca-hostap/Default
   MAINTAINER:=Qualcomm Atheros
 endef
 
-define Package/qca-hostap
+define Package/qca-hostap-10.4
   $(call Package/qca-hostap/Default)
   TITLE:=Hostap authenticator
   DEPENDS:=kmod-qca-wifi @(!(PACKAGE_hostapd))
 endef
 
-define Package/qca-hostap/description
+define Package/qca-hostap-10.4/description
  This package contains the IEEE 802.1x/WPA/EAP/RADIUS Authenticator.
 endef
 
-define Package/qca-hostapd-cli
+define Package/qca-hostapd-cli-10.4
   $(call Package/qca-hostap/Default)
-  DEPENDS:=qca-hostap
+  DEPENDS:=qca-hostap-10.4
   TITLE:=Hostap authenticator command line interface
 endef
 
-define Package/qca-hostapd-cli/description
+define Package/qca-hostapd-cli-10.4/description
  This package contains a command line utility to control the
  IEEE 802.1x/WPA/EAP/RADIUS Authenticator.
 endef
 
-define Package/qca-wpa-supplicant
+define Package/qca-wpa-supplicant-10.4
   $(call Package/qca-hostap/Default)
   TITLE:=WPA Supplicant
   DEPENDS:=kmod-qca-wifi @(!(PACKAGE_wpa-supplicant))
 endef
 
-define Package/qca-wpa-supplicant/Description
+define Package/qca-wpa-supplicant-10.4/Description
   WPA Supplicant
 endef
 
-define Package/qca-wpa-cli
+define Package/qca-wpa-cli-10.4
   $(call Package/qca-hostap/Default)
-  DEPENDS:=qca-wpa-supplicant
+  DEPENDS:=qca-wpa-supplicant-10.4
   TITLE:=WPA Supplicant command line interface
 endef
 
-define Package/qca-wpa-cli/Description
+define Package/qca-wpa-cli-10.4/Description
   WPA Supplicant control utility
 endef
 
@@ -104,13 +104,13 @@ define ConfigAthrHostap
 
 endef
 
-define Package/qca-hostap/config
+define Package/qca-hostap-10.4/config
 $(call Package/$(PKG_NAME)/override_source_path,$(PKG_NAME))
 $(call Package/$(PKG_NAME)/override_version,$(PKG_NAME),$(PKG_SUPPORTED_VERSION))
 $(call ConfigAthrHostap,hostap,ATHR_HOSTAP_HOSTAPD)
 endef
 
-define Package/qca-wpa-supplicant/config
+define Package/qca-wpa-supplicant-10.4/config
 $(call ConfigAthrHostap,wpa-supplicant,ATHR_HOSTAP_SUPPLICANT)
 endef
 
@@ -140,7 +140,7 @@ define Build/RunMake
 	$(2)
 endef
 
-define Build/Compile/qca-hostap
+define Build/Compile/qca-hostap-10.4
 	$(FIND) $(PKG_BUILD_DIR) -name \*.o -or -name \*.a | $(XARGS) rm -f
 	$(call Build/RunClean,hostapd)
 	$(call Build/RunMake,hostapd, \
@@ -148,7 +148,7 @@ define Build/Compile/qca-hostap
 	)
 endef
 
-define Build/Compile/qca-wpa-supplicant
+define Build/Compile/qca-wpa-supplicant-10.4
 	$(FIND) $(PKG_BUILD_DIR) -name \*.o -or -name \*.a | $(XARGS) rm -f
 	$(call Build/RunClean,wpa_supplicant)
 	$(call Build/RunMake,wpa_supplicant, \
@@ -182,29 +182,29 @@ endef
 
 
 define Build/Compile
-	$(Build/Compile/qca-wpa-supplicant)
-	$(Build/Compile/qca-hostap)
+	$(Build/Compile/qca-wpa-supplicant-10.4)
+	$(Build/Compile/qca-hostap-10.4)
 endef
 
-define Install/qca-hostap
+define Install/qca-hostap-10.4
 	$(INSTALL_DIR) $(1)/lib/wifi
 	$(INSTALL_DATA) ./files/hostapd.sh $(1)/lib/wifi/hostapd.sh
 	$(INSTALL_DIR) $(1)/usr/sbin
 endef
 
-define Install/qca-wpa-supplicant
+define Install/qca-wpa-supplicant-10.4
 	$(INSTALL_DIR) $(1)/lib/wifi
 	$(INSTALL_DATA) ./files/wpa_supplicant.sh $(1)/lib/wifi/wpa_supplicant.sh
 	$(INSTALL_DIR) $(1)/usr/sbin
 endef
 
-define Package/qca-hostap/install
+define Package/qca-hostap-10.4/install
 	$(call Install/qca-hostap,$(1))
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/hostapd/hostapd $(1)/usr/sbin/
 endef
 
 ifneq ($(LOCAL_TYPE),supplicant)
-  define Package/qca-hostapd-cli/install
+  define Package/qca-hostapd-cli-10.4/install
 	$(INSTALL_DIR) $(1)/usr/sbin $(1)/etc/hotplug.d/button
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/hostapd/hostapd_cli $(1)/usr/sbin/
 	$(INSTALL_DATA) ./files/wps-hotplug.sh $(1)/etc/hotplug.d/button/50-wps
@@ -216,13 +216,13 @@ ifneq ($(LOCAL_TYPE),supplicant)
   endef
 endif
 
-define Package/qca-wpa-supplicant/install
-	$(call Install/qca-wpa-supplicant,$(1))
+define Package/qca-wpa-supplicant-10.4/install
+	$(call Install/qca-wpa-supplicant-10.4,$(1))
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/wpa_supplicant/wpa_supplicant $(1)/usr/sbin/
 endef
 
 ifneq ($(LOCAL_TYPE),hostapd)
-  define Package/qca-wpa-cli/install
+  define Package/qca-wpa-cli-10.4/install
 	$(INSTALL_DIR) $(1)/usr/sbin
 	$(CP) $(PKG_BUILD_DIR)/wpa_supplicant/wpa_cli $(1)/usr/sbin/
 
@@ -236,7 +236,7 @@ ifneq ($(LOCAL_TYPE),hostapd)
   endef
 endif
 
-$(eval $(call BuildPackage,qca-hostap))
-$(eval $(call BuildPackage,qca-wpa-supplicant))
-$(eval $(call BuildPackage,qca-hostapd-cli))
-$(eval $(call BuildPackage,qca-wpa-cli))
+$(eval $(call BuildPackage,qca-hostap-10.4))
+$(eval $(call BuildPackage,qca-wpa-supplicant-10.4))
+$(eval $(call BuildPackage,qca-hostapd-cli-10.4))
+$(eval $(call BuildPackage,qca-wpa-cli-10.4))
