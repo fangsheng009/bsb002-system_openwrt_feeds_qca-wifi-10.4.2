@@ -247,61 +247,61 @@ endef
 #########################################################
 
 # Default variant (Akronite only)
-define KernelPackage/qca-wifi-akronite-perf
+define KernelPackage/qca-wifi-10.4-akronite-perf
 $(call KernelPackage/qca-wifi/Default)
   VARIANT:=akronite-perf
   DEPENDS+=@TARGET_ipq806x +TARGET_ipq806x:kmod-qca-nss-drv
 endef
 
-define KernelPackage/qca-wifi-akronite-perf/Description
+define KernelPackage/qca-wifi-10.4-akronite-perf/Description
 $(call define KernelPackage/qca-wifi/Description/Default)
 endef
 
-define KernelPackage/qca-wifi-akronite-perf/config
+define KernelPackage/qca-wifi-10.4-akronite-perf/config
 $(call KernelPackage/qca-wifi/config/Default,-akronite-perf)
 endef
 
-define KernelPackage/qca-wifi-akronite-perf/install
+define KernelPackage/qca-wifi-10.4-akronite-perf/install
 $(call KernelPackage/qca-wifi/install/Default,$(1))
 endef
-$(eval $(call KernelPackage,qca-wifi-akronite-perf))
+$(eval $(call KernelPackage,qca-wifi-10.4-akronite-perf))
 
 # Emulation variant for ipq806x
-define KernelPackage/qca-wifi-akronite-perf-emu
+define KernelPackage/qca-wifi-10.4-akronite-perf-emu
 $(call KernelPackage/qca-wifi/Default)
   VARIANT:=akronite-perf-emu
   DEPENDS+=@TARGET_ipq806x +TARGET_ipq806x:kmod-qca-nss-drv
 endef
 
-define KernelPackage/qca-wifi-akronite-perf-emu/Description
+define KernelPackage/qca-wifi-10.4-akronite-perf-emu/Description
 $(call define KernelPackage/qca-wifi/Description/Default)
 endef
 
-define KernelPackage/qca-wifi-akronite-perf-emu/config
+define KernelPackage/qca-wifi-10.4-akronite-perf-emu/config
 $(call KernelPackage/qca-wifi/config/Default,-akronite-perf-emu)
 endef
 
-define KernelPackage/qca-wifi-akronite-perf-emu/install
+define KernelPackage/qca-wifi-10.4-akronite-perf-emu/install
 $(call KernelPackage/qca-wifi/install/Default,$(1))
 endef
-$(eval $(call KernelPackage,qca-wifi-akronite-perf-emu))
+$(eval $(call KernelPackage,qca-wifi-10.4-akronite-perf-emu))
 
 # Perf variant
-define KernelPackage/qca-wifi-perf
+define KernelPackage/qca-wifi-10.4-perf
 $(call KernelPackage/qca-wifi/Default)
   VARIANT:=perf
   DEPENDS+=@TARGET_ar71xx
 endef
 
-define KernelPackage/qca-wifi-perf/Description
+define KernelPackage/qca-wifi-10.4-perf/Description
 $(call define KernelPackage/qca-wifi/Description/Default)
 endef
 
-define KernelPackage/qca-wifi-perf/config
+define KernelPackage/qca-wifi-10.4-perf/config
 $(call KernelPackage/qca-wifi/config/Default,-perf)
 endef
 
-define KernelPackage/qca-wifi-perf/install
+define KernelPackage/qca-wifi-10.4-perf/install
 $(call KernelPackage/qca-wifi/install/Default,$(1))
 endef
-$(eval $(call KernelPackage,qca-wifi-perf))
+$(eval $(call KernelPackage,qca-wifi-10.4-perf))
