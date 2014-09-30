@@ -14,7 +14,7 @@ PKG_NAME:=$(PKG)-10.4
 # This value is custom to this package
 # The first version will be used as a default and the other selectable
 # in the menuconfig
-PKG_VERSION:=10.4.250
+PKG_VERSION:=10.4.261
 PKG_RELEASE:=1
 
 PKG_BUILD_DIR:=$(KERNEL_BUILD_DIR)/$(PKG)-$(PKG_VERSION)-$(BUILD_VARIANT)/$(PKG)-$(PKG_VERSION)
