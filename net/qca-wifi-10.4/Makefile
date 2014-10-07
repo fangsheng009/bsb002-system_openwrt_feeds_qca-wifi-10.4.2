@@ -137,8 +137,8 @@ define KernelPackage/$(PKG_NAME)/Description/Default
 endef
 
 define KernelPackage/$(PKG_NAME)/config/Default
-$(call Package/$(PKG_NAME)/override_source_path,kmod-$(PKG)$(1))
-$(call Package/$(PKG_NAME)/override_version,kmod-$(PKG)$(1),$(PKG_SUPPORTED_VERSION))
+$(call Package/$(PKG_NAME)/override_source_path,kmod-$(PKG_NAME)$(1))
+$(call Package/$(PKG_NAME)/override_version,kmod-$(PKG_NAME)$(1),$(PKG_SUPPORTED_VERSION))
 endef
 
 #########################################################
