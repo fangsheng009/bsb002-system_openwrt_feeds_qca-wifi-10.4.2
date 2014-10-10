@@ -98,7 +98,7 @@ endef
 define ConfigAthrHostap
 	choice
 		prompt "$(1) configuration"
-		depends PACKAGE_qca-$(1)-10.4
+		depends on PACKAGE_qca-$(1)-10.4
 	$(foreach config,$(notdir $(basename $(wildcard files/$(1)-*.config))),
 		$(call ConfigOptAdd,$(config),$(1),$(2)))
 	endchoice
