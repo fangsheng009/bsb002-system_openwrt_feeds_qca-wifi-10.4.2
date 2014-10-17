@@ -35,7 +35,7 @@ endef
 define Package/$(PKG_NAME)
   $(call Package/$(PKG_NAME)/Default)
   TITLE:=Hostap authenticator
-  DEPENDS:=kmod-qca-wifi-10.4 @(!(PACKAGE_hostapd))
+  DEPENDS:=kmod-qca-wifi-10.4-akronite-perf @(!(PACKAGE_hostapd))
 endef
 
 define Package/$(PKG_NAME)/description
@@ -56,7 +56,7 @@ endef
 define Package/qca-wpa-supplicant-10.4
   $(call Package/$(PKG_NAME)/Default)
   TITLE:=WPA Supplicant
-  DEPENDS:=kmod-qca-wifi-10.4 @(!(PACKAGE_wpa-supplicant))
+  DEPENDS:=kmod-qca-wifi-10.4-akronite-perf @(!(PACKAGE_wpa-supplicant))
 endef
 
 define Package/qca-wpa-supplicant/Description
