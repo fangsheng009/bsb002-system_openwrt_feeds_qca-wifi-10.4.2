@@ -115,6 +115,7 @@ define KernelPackage/$(PKG_NAME)/Default
   FILES:= $(strip $(QCAWLAN_MODULE_LIST))
   AUTOLOAD:=$(call AutoLoad,33,$(notdir $(basename $(strip $(QCAWLAN_MODULE_LIST)))))
   MENU:=1
+  PROVIDES:=kmod-qca-wifi-10.4
 endef
 
 $(eval $(call RequireCommand,uuencode, \
