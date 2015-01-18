@@ -7,7 +7,7 @@ PKG_NAME:=$(PKG)-10.4
 # This value is custom to this package
 # The first version will be used as a default and the other selectable
 # in the menuconfig
-PKG_VERSION:=10.4.2.18
+PKG_VERSION:=10.4.2.20
 PKG_RELEASE:=1
 
 PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG)-$(PKG_VERSION)
