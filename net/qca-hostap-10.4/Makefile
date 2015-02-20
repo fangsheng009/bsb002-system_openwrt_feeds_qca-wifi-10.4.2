@@ -2,28 +2,31 @@
 include $(TOPDIR)/rules.mk
 
 PKG:=qca-hostap
-PKG_NAME:=$(PKG)-10.4
-
-# This value is custom to this package
-# The first version will be used as a default and the other selectable
-# in the menuconfig
-PKG_VERSION:=10.4.2.20
+PKG_NAME:=$(PKG)-10.4.2
+PKG_SOURCE_PROTO:=git
+PKG_SOURCE_URL:=ssh://qca-git01.qualcomm.com:29418/wifi/$(PKG_NAME).git
+PKG_BRANCH:=master
 PKG_RELEASE:=1
 
-PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG)-$(PKG_VERSION)
-PKG_SOURCE:=$(PKG)-$(PKG_VERSION).tar.bz2
+include $(INCLUDE_DIR)/local-development.mk
+ifeq ($(DUMP)$(PKG_VERSION),)
+  PKG_REV:=$(shell git ls-remote $(PKG_SOURCE_URL) $(PKG_BRANCH) | cut -b -7)
+  PKG_VERSION:=g$(PKG_REV)
+endif
+
+PKG_BUILD_DEPENDS:=qca-wifi-10.4.2
+
+LOCAL_TYPE=$(strip \
+		$(if $(findstring supplicant,$(BUILD_VARIANT)),supplicant, \
+		hostap \
+	))
+
+LOCAL_VARIANT=$(patsubst supplicant-%,%,$(BUILD_VARIANT))
+
+PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)-$(BUILD_VARIANT)/$(PKG)-$(PKG_VERSION)
 
 include $(INCLUDE_DIR)/package-version-override.mk
 include $(INCLUDE_DIR)/package.mk
-
-PKG_BRANCH:=$(basename $(PKG_VERSION))
-PKG_SOURCE_URL:=http://tritium.qca.qualcomm.com/software/$(PKG_BRANCH)/AP$(PKG_VERSION:999.999.0%=QCAMain%)/src/components
-PKG_BUILD_DEPENDS:=qca-wifi-10.4
-
-LOCAL_TYPE=$(strip \
-		$(if $(findstring qca-wpa-supplicant,$(BUILD_VARIANT)),supplicant, \
-		hostapd \
-	)))
 
 define Package/$(PKG_NAME)/Default
   SECTION:=QCA
@@ -35,41 +38,54 @@ endef
 define Package/$(PKG_NAME)
   $(call Package/$(PKG_NAME)/Default)
   TITLE:=Hostap authenticator
-  DEPENDS:=kmod-qca-wifi-10.4-akronite-perf @(!(PACKAGE_hostapd))
+  DEPENDS:=kmod-qca-wifi-10.4.2 @(!(PACKAGE_hostapd))
+  VARIANT:=default
 endef
 
 define Package/$(PKG_NAME)/description
  This package contains the IEEE 802.1x/WPA/EAP/RADIUS Authenticator.
 endef
 
-define Package/qca-hostapd-cli-10.4
+define Package/qca-hostapd-cli-10.4.2
   $(call Package/$(PKG_NAME)/Default)
   DEPENDS:=$(PKG_NAME)
   TITLE:=Hostap authenticator command line interface
 endef
 
-define Package/qca-hostapd-cli-10.4/description
+define Package/qca-hostapd-cli-10.4.2/description
  This package contains a command line utility to control the
  IEEE 802.1x/WPA/EAP/RADIUS Authenticator.
 endef
 
-define Package/qca-wpa-supplicant-10.4
+define Package/qca-wpa-supplicant-10.4.2
   $(call Package/$(PKG_NAME)/Default)
   TITLE:=WPA Supplicant
-  DEPENDS:=kmod-qca-wifi-10.4-akronite-perf @(!(PACKAGE_wpa-supplicant))
+  DEPENDS:=kmod-qca-wifi-10.4.2 @(!(PACKAGE_wpa-supplicant))
+  VARIANT:=supplicant-default
 endef
 
-define Package/qca-wpa-supplicant/Description
+define Package/qca-wpa-supplicant-10.4.2/Description
   WPA Supplicant
 endef
 
-define Package/qca-wpa-cli-10.4
+define Package/qca-wpa-supplicant-10.4.2-macsec
+  $(call Package/qca-wpa-supplicant-10.4.2)
+  TITLE:=WPA Supplicant (MACSEC)
+  DEPENDS+=+TARGET_ipq806x:kmod-qca-nss-macsec
+  VARIANT:=supplicant-macsec
+endef
+
+define Package/qca-wpa-supplicant-10.4.2-macsec/Description
+  WPA Supplicant with MACSEC support for IPQ8066.
+endef
+
+define Package/qca-wpa-cli-10.4.2
   $(call Package/$(PKG_NAME)/Default)
-  DEPENDS:=qca-wpa-supplicant-10.4
+  DEPENDS:=@PACKAGE_qca-wpa-supplicant-10.4.2||PACKAGE_qca-wpa-supplicant-10.4.2-macsec +librt
   TITLE:=WPA Supplicant command line interface
 endef
 
-define Package/qca-wpa-cli-10.4/Description
+define Package/qca-wpa-cli-10.4.2/Description
   WPA Supplicant control utility
 endef
 
@@ -84,53 +100,29 @@ ifneq ($(wildcard $(PKG_BUILD_DIR)/.config_*),$(subst .configured_,.config_,$(ST
   endef
 endif
 
-define ConfigOptAdd
-	config QCA_$(3)_$(1)
-			bool "$(patsubst $(2)-%,%,$(1))"
-endef
-
-define ConfigAthrHostap
-	choice
-		prompt "$(1) configuration"
-		depends on PACKAGE_qca-$(1)-10.4
-	$(foreach config,$(notdir $(basename $(wildcard files/$(1)-*.config))),
-		$(call ConfigOptAdd,$(config),$(1),$(2)))
-	endchoice
-
-	config QCA_$(2)_CONFIG
-		string
-	$(foreach config,$(notdir $(basename $(wildcard files/$(1)-*.config))),
-		default "$(config)" if QCA_$(2)_$(config))
-
-endef
 
 define Package/$(PKG_NAME)/config
-$(call Package/$(PKG_NAME)/override_source_path,$(PKG))
-$(call Package/$(PKG_NAME)/override_version,$(PKG),$(PKG_SUPPORTED_VERSION))
-$(call ConfigAthrHostap,hostap,ATHR_HOSTAP_HOSTAPD)
+$(call Package/$(PKG_NAME)/override_source_path,$(PKG_NAME))
+$(call Package/$(PKG_NAME)/override_version,$(PKG_NAME),$(PKG_SUPPORTED_VERSION))
 endef
-
-define Package/qca-wpa-supplicant-10.4/config
-$(call ConfigAthrHostap,wpa-supplicant,ATHR_HOSTAP_SUPPLICANT)
-endef
-
-HOSTAPD_CONFIG_FILE:= \
-	./files/$(strip $(CONFIG_QCA_ATHR_HOSTAP_HOSTAPD_CONFIG)).config
-WPA_CONFIG_FILE= \
-	./files/$(strip $(CONFIG_QCA_ATHR_HOSTAP_SUPPLICANT_CONFIG)).config
 
 define Build/Configure
 	$(Build/Configure/rebuild)
-	$(CP) $(HOSTAPD_CONFIG_FILE) $(PKG_BUILD_DIR)/hostapd/.config
-	$(CP) $(WPA_CONFIG_FILE) $(PKG_BUILD_DIR)/wpa_supplicant/.config
+	$(if $(wildcard ./files/hostapd-$(LOCAL_VARIANT).config), \
+		$(CP) ./files/hostapd-$(LOCAL_VARIANT).config $(PKG_BUILD_DIR)/hostapd/.config \
+	)
+	$(CP) ./files/wpa_supplicant-10.4.2-$(LOCAL_VARIANT).config $(PKG_BUILD_DIR)/wpa_supplicant/.config
 endef
 
 TARGET_CPPFLAGS += \
-	-I$(STAGING_DIR)/usr/include
+	-I$(STAGING_DIR)/usr/include \
+	-I$(STAGING_DIR)/usr/include/qca-nss-macsec
 
-define Build/RunClean
-	$(MAKE) -C $(PKG_BUILD_DIR)/$(1) clean
-endef
+ifneq ($(LOCAL_TYPE),hostap)
+  ifeq ($(LOCAL_VARIANT),macsec)
+    TARGET_LDFLAGS += -lfal -L$(STAGING_DIR)/usr/lib
+  endif
+endif
 
 define Build/RunMake
 	CFLAGS="$(TARGET_CPPFLAGS) $(TARGET_CFLAGS)" \
@@ -140,20 +132,20 @@ define Build/RunMake
 	$(2)
 endef
 
-define Build/Compile/$(PKG_NAME)
-	$(FIND) $(PKG_BUILD_DIR) -name \*.o -or -name \*.a | $(XARGS) rm -f
-	$(call Build/RunClean,hostapd)
+define Build/Compile/qca-hostap
 	$(call Build/RunMake,hostapd, \
 		hostapd hostapd_cli \
 	)
 endef
 
-define Build/Compile/qca-wpa-supplicant-10.4
-	$(FIND) $(PKG_BUILD_DIR) -name \*.o -or -name \*.a | $(XARGS) rm -f
-	$(call Build/RunClean,wpa_supplicant)
+define Build/Compile/qca-supplicant
 	$(call Build/RunMake,wpa_supplicant, \
-		wpa_cli wpa_supplicant \
+		wpa_supplicant wpa_cli \
 	)
+endef
+
+define Build/Compile
+	$(Build/Compile/qca-$(LOCAL_TYPE))
 endef
 
 define Build/InstallDev
@@ -180,19 +172,13 @@ define Build/InstallDev
 	$(CP) $(PKG_BUILD_DIR)/src/utils/os_unix.o $(1)/usr/lib/
 endef
 
-
-define Build/Compile
-	$(Build/Compile/qca-wpa-supplicant-10.4)
-	$(Build/Compile/$(PKG_NAME))
-endef
-
 define Install/$(PKG_NAME)
 	$(INSTALL_DIR) $(1)/lib/wifi
 	$(INSTALL_DATA) ./files/hostapd.sh $(1)/lib/wifi/hostapd.sh
 	$(INSTALL_DIR) $(1)/usr/sbin
 endef
 
-define Install/qca-wpa-supplicant-10.4
+define Install/qca-wpa-supplicant-10.4.2
 	$(INSTALL_DIR) $(1)/lib/wifi
 	$(INSTALL_DATA) ./files/wpa_supplicant.sh $(1)/lib/wifi/wpa_supplicant.sh
 	$(INSTALL_DIR) $(1)/usr/sbin
@@ -204,7 +190,7 @@ define Package/$(PKG_NAME)/install
 endef
 
 ifneq ($(LOCAL_TYPE),supplicant)
-  define Package/qca-hostapd-cli-10.4/install
+  define Package/qca-hostapd-cli-10.4.2/install
 	$(INSTALL_DIR) $(1)/usr/sbin $(1)/etc/hotplug.d/button
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/hostapd/hostapd_cli $(1)/usr/sbin/
 	$(INSTALL_DATA) ./files/wps-hotplug.sh $(1)/etc/hotplug.d/button/50-wps
@@ -216,13 +202,20 @@ ifneq ($(LOCAL_TYPE),supplicant)
   endef
 endif
 
-define Package/qca-wpa-supplicant-10.4/install
-	$(call Install/qca-wpa-supplicant-10.4,$(1))
+define Package/qca-wpa-supplicant-10.4.2/install
+	$(call Install/qca-wpa-supplicant-10.4.2,$(1))
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/wpa_supplicant/wpa_supplicant $(1)/usr/sbin/
 endef
 
-ifneq ($(LOCAL_TYPE),hostapd)
-  define Package/qca-wpa-cli-10.4/install
+define Package/qca-wpa-supplicant-10.4.2-macsec/install
+	$(call Package/qca-wpa-supplicant-10.4.2/install,$(1))
+	$(INSTALL_DIR) $(1)/etc/init.d $(1)/etc/config
+	$(INSTALL_BIN) ./files/macsec.init $(1)/etc/init.d/macsec
+	$(INSTALL_BIN) ./files/macsec.config $(1)/etc/config/macsec
+endef
+
+ifneq ($(LOCAL_TYPE),hostap)
+  define Package/qca-wpa-cli-10.4.2/install
 	$(INSTALL_DIR) $(1)/usr/sbin
 	$(CP) $(PKG_BUILD_DIR)/wpa_supplicant/wpa_cli $(1)/usr/sbin/
 
@@ -237,6 +230,6 @@ ifneq ($(LOCAL_TYPE),hostapd)
 endif
 
 $(eval $(call BuildPackage,$(PKG_NAME)))
-$(eval $(call BuildPackage,qca-wpa-supplicant-10.4))
-$(eval $(call BuildPackage,qca-hostapd-cli-10.4))
-$(eval $(call BuildPackage,qca-wpa-cli-10.4))
+$(eval $(call BuildPackage,qca-wpa-supplicant-10.4.2))
+$(eval $(call BuildPackage,qca-hostapd-cli-10.4.2))
+$(eval $(call BuildPackage,qca-wpa-cli-10.4.2))
