@@ -3,22 +3,24 @@ include $(TOPDIR)/rules.mk
 include $(INCLUDE_DIR)/kernel.mk
 
 PKG:=qca-wifi
-PKG_NAME:=$(PKG)-10.4
-
-# This value is custom to this package
-# The first version will be used as a default and the other selectable
-# in the menuconfig
-PKG_VERSION:=10.4.2.20
+PKG_NAME:=$(PKG)-10.4.2
+PKG_SOURCE_PROTO:=git
+PKG_SOURCE_URL:=ssh://qca-git01.qualcomm.com:29418/wifi/$(PKG_NAME).git
+PKG_BRANCH:=master
 PKG_RELEASE:=1
 
-PKG_BUILD_DIR:=$(KERNEL_BUILD_DIR)/$(PKG)-$(PKG_VERSION)-$(BUILD_VARIANT)/$(PKG)-$(PKG_VERSION)
-PKG_SOURCE:=$(PKG)-$(PKG_VERSION).tar.bz2
+LOCAL_SRC:=$(TOPDIR)/qca/src/qca-wifi-10.4.2
+
+include $(INCLUDE_DIR)/local-development.mk
+ifeq ($(DUMP)$(PKG_VERSION),)
+  PKG_REV:=$(shell git ls-remote $(PKG_SOURCE_URL) $(PKG_BRANCH) | cut -b -7)
+  PKG_VERSION:=g$(PKG_REV)
+endif
+
+PKG_BUILD_DIR:=$(KERNEL_BUILD_DIR)/$(PKG_NAME)-$(PKG_VERSION)-$(BUILD_VARIANT)/$(PKG_NAME)-$(PKG_VERSION)
 
 include $(INCLUDE_DIR)/package-version-override.mk
 include $(INCLUDE_DIR)/package.mk
-
-PKG_BRANCH:=$(basename $(PKG_VERSION))
-PKG_SOURCE_URL:=http://tritium.qca.qualcomm.com/software/$(PKG_BRANCH)/AP$(PKG_VERSION:999.999.0%=QCAMain%)/src/components
 
 # These two functions are used to define options based on WLAN config
 if_opt_set=       $(if $(filter $(1)=1,$(QCAWLAN_MAKEOPTS)),$(2),)
@@ -34,7 +36,7 @@ append_if_notnull=QCAWLAN_MAKEOPTS+=$(if $(call qstrip,$(1)),$(2),$(3))
 QCAWLAN_MODULE_LIST:=
 
 ifneq ($(BUILD_VARIANT),)
-QCAWLAN_MAKEOPTS:=$(shell cat profiles/config.wlan.$(subst -,.,$(BUILD_VARIANT)))
+QCAWLAN_MAKEOPTS:=$(shell cat $(LOCAL_SRC)/os/linux/configs/config.wlan.$(subst -,.,$(BUILD_VARIANT)))
 endif
 
 ifeq ($(ARCH),mips)
@@ -109,13 +111,13 @@ define KernelPackage/$(PKG_NAME)/Default
   URL:=http://www.qca.qualcomm.com
   MAINTAINER:=Qualcomm Atheros
   TITLE:=QCA Wireless LAN Driver
-  DEPENDS:=@(PACKAGE_qca-wifi-fw-10.4-asic||PACKAGE_qca-wifi-fw-10.4-emu) \
+  DEPENDS:=@(PACKAGE_qca-wifi-fw-10.4.2-emu) \
 	  +libgcc +libc +wireless-tools +librt \
 	  @(!(PACKAGE_kmod-ath&&PACKAGE_kmod-mac80211))
   FILES:= $(strip $(QCAWLAN_MODULE_LIST))
   AUTOLOAD:=$(call AutoLoad,33,$(notdir $(basename $(strip $(QCAWLAN_MODULE_LIST)))))
   MENU:=1
-  PROVIDES:=kmod-qca-wifi-10.4
+  PROVIDES:=kmod-qca-wifi-10.4.2
 endef
 
 $(eval $(call RequireCommand,uuencode, \
@@ -196,6 +198,7 @@ QCAWLAN_TOOL_LIST:= 80211stats athstats athstatsclr apstats pktlogconf pktlogdum
 QCAWLAN_TOOL_LIST+= $(call if_opt_set, ATH_SUPPORT_DFS, radartool)
 QCAWLAN_TOOL_LIST+= $(call if_opt_set, ATH_SUPPORT_SPECTRAL, spectraltool)
 QCAWLAN_TOOL_LIST+= $(call if_opt_set, ATH_SUPPORT_IBSS_PRIVATE_SECURITY, athadhoc)
+QCAWLAN_TOOL_LIST+= $(call if_opt_set, ATH_SSID_STEERING, ssidsteering)
 QCAWLAN_TOOL_LIST+= $(call if_opt_set, ATH_SUPPORT_AOW, mplay aowstatlog)
 QCAWLAN_TOOL_LIST+= $(call if_opt_set, ATH_SUPPORT_TX99, tx99tool)
 QCAWLAN_TOOL_LIST+= $(call if_opt_set, DEBUG_TOOLS, dumpregs reg)
@@ -208,11 +211,15 @@ define qca-wifi_update_patches_version
 		ln -s patches-$(PKG_BRANCH) patches
 endef
 
+FWINCLUDES:= $(PKG_BUILD_DIR)/fwcommon
+FWPROTOCOL_SUPPORT:=$(PKG_BUILD_DIR)/fwprotocol/support
+FWPROTOCOL_TOOLS:=$(PKG_BUILD_DIR)/fwprotocol/tools
 define Build/Compile
 	@echo "Saving the driver configuration flags to $(PKG_BUILD_DIR)/lsdk_flags"
 	echo $(QCAWLAN_MAKEOPTS) | sed 's, ,\n,g' > $(PKG_BUILD_DIR)/lsdk_flags
 	mkdir -p $(PKG_BUILD_DIR)/root/usr/www/cgi-bin
 	mkdir -p $(PKG_BUILD_DIR)/root/sbin
+	cp -af $(FWINCLUDES)/* $(PKG_BUILD_DIR)/offload/include/
 	($(foreach var,$(strip $(QCAWLAN_MAKEOPTS)),export $(var);) \
 	    $(MAKE) -C $(PKG_BUILD_DIR)/hal/linux TARGET=$(HAL_TARGET))
 	($(foreach var,$(strip $(QCAWLAN_MAKEOPTS)),export $(var);) \
@@ -223,9 +230,6 @@ define Build/Compile
 	    $(MAKEARCH) -C $(PKG_BUILD_DIR)/os/linux/tools \
 	        INSTALL_ROOT=$(PKG_BUILD_DIR)/root ath_tools wlanconfig)
 	($(foreach var,$(strip $(QCAWLAN_MAKEOPTS)),export $(var);) \
-	    $(MAKEARCH) -C $(PKG_BUILD_DIR)/offload/wlan/halphy_tools/host/testcmd_tlv \
-	        -f makefile.linux WORKAREA=$(PKG_BUILD_DIR)/offload WLAN_TOP=$(PKG_BUILD_DIR))
-	($(foreach var,$(strip $(QCAWLAN_MAKEOPTS)),export $(var);) \
 	    $(MAKEARCH) -C $(PKG_BUILD_DIR)/offload/os/linux/tools/athdiag)
 endef
 
@@ -235,8 +239,6 @@ define KernelPackage/$(PKG_NAME)/install/Default
 	[ ! -d files-$(PKG_BRANCH) ] || \
 		$(CP) ./files-$(PKG_BRANCH)/* $(1)/
 	$(INSTALL_BIN) $(foreach tool,$(QCAWLAN_TOOL_LIST),$(PKG_BUILD_DIR)/os/linux/tools/$(tool)) $(1)/usr/sbin
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/offload/wlan/halphy_tools/host/testcmd_tlv/Linux/athtestcmd $(1)/usr/sbin
-	$(INSTALL_DATA) $(PKG_BUILD_DIR)/offload/wlan/halphy_tools/host/testcmd_tlv/Linux/*.so $(1)/usr/lib
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/offload/os/linux/tools/athdiag/athdiag $(1)/usr/sbin
 endef
 
